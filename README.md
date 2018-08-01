@@ -1,5 +1,4 @@
 # ArcLakeVis
-Visualizing the ArcLake lake surface water temperature data
 
 By Ruth and Mengyi
 
