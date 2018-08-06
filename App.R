@@ -3,7 +3,7 @@
 ## ----------------------------
 
 library(shiny)
-library(ShinyDash)
+library(shinydashboard)
 library(leaflet)
 library(ggplot2)
 library(knitr)
