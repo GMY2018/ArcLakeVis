@@ -3,12 +3,11 @@
 ## ----------------------------
 
 library(shiny)
-library(shinydashboard)
+# library(shinydashboard)
 library(leaflet)
 library(ggplot2)
 library(knitr)
 library(RJSONIO)
-# library(markdown)
 library(raster)
 library(maps)
 library(DT)
