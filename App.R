@@ -12,6 +12,7 @@ library(raster)
 library(maps)
 library(DT)
 library(RColorBrewer)
+library(mgcv)
 
 
 # colours used to represent different groups
@@ -58,8 +59,6 @@ ui <- fluidPage(
         
         checkboxInput('lakespecmean', 'Show group mean curve for this lake', FALSE),
         
-        
-        
         selectizeInput('addmean', 
                        label=h6("Add Group Mean Curves"),
                        choices=c('G4 Dark blue'=4, 'G5 Mid blue'=5, 'G9 Light blue'=9, 'G1 Yellow'=1,  
@@ -81,11 +80,41 @@ ui <- fluidPage(
         tabsetPanel(
           
           tabPanel("Main",  plotOutput('LakeTimeSeries'),
-                   
                    conditionalPanel("input.allmeans == TRUE", plotOutput('AllMeanCurves',height = "500px")),
                    conditionalPanel("input.lakemask == TRUE", plotOutput('maskplot',height = "600px"))
           ),
           
+          tabPanel('Model',
+             fluidRow(
+                  column(11,
+                  h3("Are the seasonal and trend patterns in the time series significant?
+                     The generalized additive model (GAM) can help. Click the button to run the model."),
+                  br(),
+                  actionButton('gam', strong('Fit the model', style = 'color:steelblue')),
+                  # checkboxInput('gam', strong('Fit the model', style = 'color:gray'), FALSE),
+                  br(),
+                  br(),
+                  h4("We can look at the effective degrees of freedom (edf) of the smooth functions of time and month
+                      to see if any of these are significantly non-constant. For time series data, an edf greater than 1 
+                      suggests that there is certain linear or curved feature.",
+                     style = 'color:gray'),
+                  h4("We can also plot the fitted smooth functions to have a better idea of this linear or curved feature.",
+                     style = 'color:gray'),
+                  # checkboxInput('plotSmooth', 'Plot the fitted smooth functions.', FALSE),
+                  hr()),
+                  column(1)
+               
+            ),
+      
+            fluidRow(
+                  column(11,
+                  conditionalPanel("is.null(input['gam']) == FALSE",  # input['xx'] to get the values
+                             br(),
+                             verbatimTextOutput("GamSummary"),
+                             plotOutput("GamPlot", height = "380px"))),
+                  column(1)
+            )),
+            
           tabPanel('Data',  DT::dataTableOutput("contents")),
           
           tabPanel("About",  includeHTML('APPTAB2.html'))   # includeMarkdown('APPTAB2.md')
@@ -152,6 +181,7 @@ server <- function(input, output) {
   # Turns a normal variable into a reactive variable
   # Define some reactives for accessing the data
   
+  ## (1) The map on the top
   # Display the center of the map
   output$center <- renderText({
     cent <- input$basemap_center
@@ -186,7 +216,6 @@ server <- function(input, output) {
   #   Lakesub
   # })
   
-  
   # Create the map using provider's map
   # OpenStreetMap.Mapnik
   # CartoDB.PositronNoLabels
@@ -196,12 +225,6 @@ server <- function(input, output) {
                               options=providerTileOptions(errorTileUrl='No idea why it failed...'))
   
   output$basemap <- leaflet::renderLeaflet(map0)
-  
-  # object that lets us control the leaflet map on the page.
-  # map0 <- leaflet::leaflet(options=leafletOptions(minZoom=2, maxZoom=5)) %>% 
-  #            leaflet::addTiles("//{s}.tiles.mapbox.com/v3/jcheng.map-5ebohr46/{z}/{x}/{y}.png",
-  #            attribution=HTML('Maps by <a href="http://www.mapbox.com/">Mapbox</a>')) %>% 
-  #            leaflet::setView(38, 9, zoom=2)
   
   # The rest will be on a 'map proxy'
   leaflet::leafletProxy('basemap') %>%
@@ -242,7 +265,7 @@ server <- function(input, output) {
   })
   
   
-  # The outputs
+  ## (2) The time series plot of the selected lake
   output$LakeTimeSeries <- renderPlot({
     
     validate(need(!is.null(selectedLake), 'Please select a lake'))
@@ -299,10 +322,6 @@ server <- function(input, output) {
   })
   
   
-  
-  output$contents <- DT::renderDataTable(datatable(tab, filter = 'top'))  # The table is on its own
-  
-  
   output$maskplot <- renderPlot({
     
     validate(need(!is.null(selectedLake), ''))
@@ -324,8 +343,7 @@ server <- function(input, output) {
   })
   
   
-  
-  output$AllMeanCurves <- renderPlot({
+    output$AllMeanCurves <- renderPlot({
     monthcol <- monthCol()
     cses <- sse[, monthcol]
     cmeans <- sm[, monthcol]
@@ -353,7 +371,50 @@ server <- function(input, output) {
       plot(0, 1, type="n", xlab="", ylab="", xaxt="n", yaxt="n", bty="n")
       legend(cex=1.25, "topleft", bty="n", legend=groupdat$Name[order(c(4, 5, 9, 1, 2, 3, 6, 8, 7))], 
              pch=19, col=groupcols[1:9], title="Group name")
-    }})
+    }
+  })
+  
+  
+  ## (3) The data table for lake information
+  output$contents <- DT::renderDataTable(datatable(tab, filter = 'top'))  # The table is on its own
+  
+  
+  ## (4) The gam model for the significance of trend and seasonality
+  GamData <- eventReactive(input$gam, {
+    fitGam <- NULL
+    
+    if (!is.null(selectedLake)) {
+      Lake <- selectedLake
+      Lakeid <- Lake[1,1]
+      id <- which(newalldat$GloboLakes_ID==Lakeid)
+      lswt <- as.vector(data.matrix(rec[id,]))
+      decimal_month <- time - floor(time)
+      data_mat <- data.frame(lswt, time, decimal_month) 
+      fitGam <- gam(lswt ~ s(time, bs='ps') + s(decimal_month, bs='cc'), data=data_mat)
+    }
+    
+    fitGam
+  })
+  
+  
+  output$GamSummary <- renderPrint({
+    # validate(need(!is.null(selectedLake), ''))
+    fitGam <- GamData()
+    if (!is.null(fitGam)) {
+      summary(fitGam)
+    }
+    else {print('')}
+  })
+  
+  
+  output$GamPlot <- renderPlot({
+    fitGam <- GamData()
+    par(mfrow=c(1,2), cex=1.3)
+    if (!is.null(fitGam)) {
+      plot(fitGam, ylab='', lwd=2)
+    }
+    else {plot(0, 1, type="n", xlab="", ylab="", xaxt="n", yaxt="n", bty="n")}
+  })
   
 }
 
