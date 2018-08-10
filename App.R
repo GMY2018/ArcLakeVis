@@ -5,13 +5,10 @@
 library(shiny)
 # library(shinydashboard)
 library(leaflet)
-library(ggplot2)
-library(knitr)
-library(RJSONIO)
+library(magrittr)
 library(raster)
 library(maps)
 library(DT)
-library(RColorBrewer)
 library(mgcv)
 
 
