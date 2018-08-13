@@ -57,7 +57,7 @@ function(input, output, session) {
   
   makeReactiveBinding('selectedLake')
   # Turns a normal variable into a reactive variable
-  # Define some reactives for accessing the data
+  # This object is from the observe function and is used throughout the server function
   
   ## (1) For the map
   # Display the center of the map
@@ -111,7 +111,6 @@ function(input, output, session) {
     else Lake <- Lakes[Lakes[,1] == event$id,]
     selectedLake <<- Lake   # for the reactive binding
     
-    # Lake <- selectedLake()
     content <- as.character(tagList(
       tags$strong(paste0('ID ', Lake$GloboLakes_ID, ', ', Lake$LakeName, ', ', Lake$Country,  
                          ", Elevation: ", Lake$Elevation, "m, Group ", Lake$Group)),
@@ -119,8 +118,8 @@ function(input, output, session) {
     ))
     
     leaflet::leafletProxy('basemap') %>%
-      leaflet::clearMarkers() %>%
-      leaflet::addPopups(event$lng, event$lat, content, event$id)
+    leaflet::clearMarkers() %>%
+    leaflet::addPopups(event$lng, event$lat, content, event$id)
   })
   
   
