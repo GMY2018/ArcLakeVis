@@ -13,14 +13,14 @@ library(mgcv)
 fluidPage(
     # tags$head(includeScript("google-analytics.js")),
     fluidRow(
-      column(5, offset=1,
-             h2('GloboLakes','ARCLAKE Time Series')),
+    column(6, offset=1,
+           titlePanel("GloboLakes - ArcLake Time Series", windowTitle="Visualizing ArcLake Times Series Data")),
     
-      column(5, 
-             br(),
-             br(),
-             textOutput('center')
-      )),
+    column(4, 
+           br(),
+           br(),
+           textOutput('center'))
+    ),
     
     # tags$head(tags$link(rel='stylesheet', type='text/css', href='styles.css')),
     tags$head(tags$link(rel='stylesheet', href='https://unpkg.com/leaflet@1.3.1/dist/leaflet.css')),
