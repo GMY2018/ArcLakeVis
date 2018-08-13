@@ -10,9 +10,7 @@ library(mgcv)
 # colours used to represent different groups
 # "Dark blue", "Mid blue", "Light blue", "Yellow", "Orange", "Red", "Pink", "Light Green", "Dark Green"
 
-shinyUI(
-  
-  fluidPage(
+fluidPage(
     # tags$head(includeScript("google-analytics.js")),
     fluidRow(
       column(5, offset=1,
@@ -110,6 +108,6 @@ shinyUI(
     ))
   )
 
-))
+)
 
 
