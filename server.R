@@ -52,8 +52,8 @@ Lakes <- newalldat2[, 1:9]   # For all lakes
 npix <- Lakes$LakeSize   # this is for the maps only...
 
 
-
-shinyServer(function(input, output, session) {
+## The server function
+function(input, output, session) {
   
   makeReactiveBinding('selectedLake')
   # Turns a normal variable into a reactive variable
@@ -274,7 +274,7 @@ shinyServer(function(input, output, session) {
     else {plot(0, 1, type="n", xlab="", ylab="", xaxt="n", yaxt="n", bty="n")}
   })
 
-})
+}
 
 
 
